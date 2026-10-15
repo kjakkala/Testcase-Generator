@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>UI QA Coverage — Upland Software</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#0f1219; --surface:#161b26; --surface2:#1c2333; --surface3:#222c3c;
+  --border:#1e2535; --border2:#2a3347;
+  --blue:#3b82f6; --blue-dim:rgba(59,130,246,0.15);
+  --green:#22c55e; --green-dim:rgba(34,197,94,0.12);
+  --amber:#f59e0b; --amber-dim:rgba(245,158,11,0.12);
+  --red:#ef4444; --red-dim:rgba(239,68,68,0.12);
+  --purple:#a855f7; --purple-dim:rgba(168,85,247,0.12);
+  --text:#e2e8f0; --text2:#94a3b8; --text3:#4b5563;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh;}
+
+/* ── Header ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.header-title{font-size:15px;font-weight:600;}
+.header-sub{font-size:11px;color:var(--text2);}
+.header-nav{margin-left:auto;display:flex;gap:8px;}
+.nav-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;text-decoration:none;font-family:inherit;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+
+/* ── Layout ── */
+.app{max-width:1000px;margin:0 auto;padding:24px 16px;}
+
+/* ── Ticket input area ── */
+.ticket-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:12px;}
+.ticket-inputs{display:flex;flex-direction:column;gap:8px;}
+.ticket-row{display:flex;gap:8px;align-items:center;}
+.ticket-num{width:22px;height:22px;background:var(--surface2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text2);flex-shrink:0;}
+.ticket-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;}
+.ticket-input:focus{border-color:var(--blue);}
+.ticket-input::placeholder{color:var(--text3);}
+.ticket-remove{width:24px;height:24px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;}
+.ticket-remove:hover{background:var(--red-dim);color:var(--red);}
+.add-ticket-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1px dashed var(--border2);color:var(--text2);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;width:100%;margin-top:4px;}
+.add-ticket-btn:hover{border-color:var(--blue);color:var(--blue);}
+.ticket-count{font-size:11px;color:var(--text3);margin-top:6px;}
+
+/* ── Config row ── */
+.config-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.config-field{flex:1;min-width:200px;}
+.config-field label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;}
+.config-input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;}
+.config-input:focus{border-color:var(--blue);}
+
+/* ── Action bar ── */
+.action-bar{display:flex;gap:8px;margin-bottom:20px;}
+.btn-primary{flex:1;padding:10px 18px;background:var(--blue);border:none;border-radius:8px;color:white;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary:hover:not(:disabled){background:#2563eb;}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-secondary{padding:10px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;}
+.btn-secondary:hover{background:var(--surface2);color:var(--text);}
+
+/* ── Progress ── */
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:16px;display:none;}
+.progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width 0.4s ease;}
+
+/* ── Results ── */
+.results{display:flex;flex-direction:column;gap:12px;}
+.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.ticket-card-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.ticket-badge{background:var(--blue-dim);color:var(--blue);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.ticket-card-title{font-size:13px;font-weight:500;flex:1;}
+.ticket-status{font-size:10px;padding:3px 8px;border-radius:3px;}
+.status-done{background:var(--green-dim);color:var(--green);}
+.status-loading{background:var(--amber-dim);color:var(--amber);}
+.status-error{background:var(--red-dim);color:var(--red);}
+.ticket-card-body{padding:16px 18px;}
+
+/* ── Coverage sections ── */
+.coverage-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:640px){.coverage-grid{grid-template-columns:1fr;}}
+.coverage-section{background:var(--surface2);border-radius:8px;padding:12px 14px;}
+.coverage-section.full-width{grid-column:1/-1;}
+.cov-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.cov-title.blue{color:var(--blue);}
+.cov-title.amber{color:var(--amber);}
+.cov-title.red{color:var(--red);}
+.cov-title.purple{color:var(--purple);}
+.cov-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-blue{background:var(--blue);}
+.dot-amber{background:var(--amber);}
+.dot-red{background:var(--red);}
+.dot-purple{background:var(--purple);}
+.bullet-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.bullet-list li{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);line-height:1.5;}
+.bullet-list li::before{content:'•';color:var(--text3);flex-shrink:0;margin-top:1px;}
+
+/* ── Download + next ── */
+.card-actions{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;}
+.btn-download{padding:7px 14px;background:var(--green-dim);border:1px solid rgba(34,197,94,0.3);color:var(--green);border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.btn-download:hover{background:rgba(34,197,94,0.2);}
+.btn-copy{padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;}
+.btn-copy:hover{color:var(--text);}
+.card-actions-right{margin-left:auto;font-size:11px;color:var(--text3);}
+
+/* ── Ask next banner ── */
+.ask-next{background:var(--blue-dim);border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-top:4px;}
+.ask-next-text{flex:1;font-size:13px;color:var(--text);}
+.btn-yes{padding:8px 16px;background:var(--blue);border:none;border-radius:6px;color:white;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;}
+.btn-no{padding:8px 16px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;}
+
+/* ── Spinner ── */
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:rot 0.7s linear infinite;}
+@keyframes rot{to{transform:rotate(360deg);}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--text);z-index:100;display:none;animation:fadeIn 0.2s;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ── Loading skeleton ── */
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;height:12px;margin-bottom:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* ── Status bar ── */
+.status-bar{background:var(--surface2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--text2);margin-bottom:12px;display:none;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">U</div>
+  <div>
+    <div class="header-title">UI QA Coverage Generator</div>
+    <div class="header-sub">Upland Software — Cimpl QA</div>
+  </div>
+  <div class="header-nav">
+    <a href="index.html" class="nav-btn">Test Case Generator</a>
+    <a href="tr_inspect.html" class="nav-btn">TestRail Inspector</a>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- Config row -->
+  <div class="config-row" id="configRow">
+    <div class="config-field">
+      <label>AI Key (GitHub Token or OpenAI)</label>
+      <input type="password" class="config-input" id="aiKey" placeholder="github_pat_... or sk-..."/>
+    </div>
+    <div class="config-field">
+      <label>Jira Base URL</label>
+      <input type="text" class="config-input" id="jiraUrl" placeholder="https://upland.atlassian.net"/>
+    </div>
+    <div class="config-field">
+      <label>Jira Email</label>
+      <input type="text" class="config-input" id="jiraEmail" placeholder="you@company.com"/>
+    </div>
+    <div class="config-field">
+      <label>Jira Token</label>
+      <input type="password" class="config-input" id="jiraToken" placeholder="Jira API token"/>
+    </div>
+  </div>
+
+  <!-- Ticket inputs -->
+  <div class="ticket-section">
+    <div class="section-label">Jira Tickets — up to 5 at a time</div>
+    <div class="ticket-inputs" id="ticketInputs">
+      <div class="ticket-row">
+        <div class="ticket-num">1</div>
+        <input class="ticket-input" type="text" placeholder="https://upland.atlassian.net/browse/CIMP-1234 or CIMP-1234"/>
+        <button class="ticket-remove" onclick="removeTicket(this)" title="Remove">×</button>
+      </div>
+    </div>
+    <button class="add-ticket-btn" id="addBtn" onclick="addTicket()">
+      + Add another ticket
+    </button>
+    <div class="ticket-count" id="ticketCount">1 / 5 tickets</div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <button class="btn-primary" id="generateBtn" onclick="generateAll()">
+      <span id="genSpinWrap" style="display:none"><div class="spin"></div></span>
+      <span id="genBtnText">Generate UI QA Coverage</span>
+    </button>
+    <button class="btn-secondary" onclick="clearAll()">Clear All</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <!-- Results -->
+  <div class="results" id="results"></div>
+
+  <!-- Ask next -->
+  <div class="ask-next" id="askNext" style="display:none">
+    <div class="ask-next-text">✅ Done! Would you like to retrieve another Jira ticket?</div>
+    <button class="btn-yes" onclick="resetForNext()">Yes, add more</button>
+    <button class="btn-no" onclick="document.getElementById('askNext').style.display='none'">No, I'm done</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────
+let ticketCount = 1;
+const MAX_TICKETS = 5;
+let generatedResults = {};
+
+// ── Load config from server ────────────────────────────────────────────
+window.onload = async () => {
+  try {
+    const res = await fetch('/get-config');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (cfg.jira_url)   document.getElementById('jiraUrl').value   = cfg.jira_url;
+    if (cfg.jira_email) document.getElementById('jiraEmail').value = cfg.jiraEmail || cfg.jira_email;
+    if (cfg.jira_token) document.getElementById('jiraToken').value = cfg.jira_token;
+    const key = cfg.ai_key || cfg.github_token || cfg.openai_key || '';
+    if (key) document.getElementById('aiKey').value = key;
+  } catch(e) {
+    console.warn('[Config] Could not load from server:', e.message);
+  }
+};
+
+// ── Ticket management ─────────────────────────────────────────────────
+function addTicket() {
+  if (ticketCount >= MAX_TICKETS) return;
+  ticketCount++;
+  const row = document.createElement('div');
+  row.className = 'ticket-row';
+  row.innerHTML = `
+    <div class="ticket-num">${ticketCount}</div>
+    <input class="ticket-input" type="text" placeholder="Jira ticket URL or key"/>
+    <button class="ticket-remove" onclick="removeTicket(this)" title="Remove">×</button>
+  `;
+  document.getElementById('ticketInputs').appendChild(row);
+  updateTicketUI();
+  row.querySelector('input').focus();
+}
+
+function removeTicket(btn) {
+  const rows = document.querySelectorAll('.ticket-row');
+  if (rows.length <= 1) { btn.closest('.ticket-row').querySelector('input').value = ''; return; }
+  btn.closest('.ticket-row').remove();
+  renumberTickets();
+  updateTicketUI();
+}
+
+function renumberTickets() {
+  document.querySelectorAll('.ticket-row').forEach((row, i) => {
+    const num = row.querySelector('.ticket-num');
+    if (num) num.textContent = i + 1;
+  });
+  ticketCount = document.querySelectorAll('.ticket-row').length;
+}
+
+function updateTicketUI() {
+  ticketCount = document.querySelectorAll('.ticket-row').length;
+  document.getElementById('ticketCount').textContent = `${ticketCount} / ${MAX_TICKETS} tickets`;
+  document.getElementById('addBtn').style.display = ticketCount >= MAX_TICKETS ? 'none' : 'flex';
+}
+
+function getTicketKeys() {
+  return Array.from(document.querySelectorAll('.ticket-input'))
+    .map(el => el.value.trim())
+    .filter(v => v)
+    .map(v => {
+      // Extract key from URL or use as-is
+      const match = v.match(/browse\/([A-Z]+-\d+)/i) || v.match(/([A-Z]+-\d+)/i);
+      return match ? match[1].toUpperCase() : v.toUpperCase();
+    });
+}
+
+// ── Generate all tickets ──────────────────────────────────────────────
+async function generateAll() {
+  const keys   = getTicketKeys();
+  if (!keys.length) { showToast('Add at least one Jira ticket key', 'err'); return; }
+
+  const aiKey  = document.getElementById('aiKey').value.trim();
+  if (!aiKey)  { showToast('Add your AI key (GitHub Token or OpenAI key)', 'err'); return; }
+
+  // Reset
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('askNext').style.display = 'none';
+  document.getElementById('progressBar').style.display = 'block';
+  document.getElementById('statusBar').style.display = 'block';
+  setGenerating(true);
+  generatedResults = {};
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const pct = Math.round(((i) / keys.length) * 100);
+    setProgress(pct, `Processing ${key} (${i+1}/${keys.length})...`);
+
+    // Create placeholder card
+    const cardId = `card-${key}`;
+    appendCard(cardId, key);
+
+    try {
+      // Step 1: Fetch Jira ticket
+      setCardStatus(cardId, 'loading', 'Fetching from Jira...');
+      const jiraData = await fetchJiraTicket(key);
+
+      // Step 2: Generate AI coverage
+      setCardStatus(cardId, 'loading', 'Generating QA coverage...');
+      const coverage = await generateCoverage(key, jiraData, aiKey);
+
+      // Step 3: Render result
+      generatedResults[key] = { jiraData, coverage };
+      renderCoverage(cardId, key, jiraData, coverage);
+      setCardStatus(cardId, 'done', '✅ Complete');
+
+    } catch(e) {
+      setCardStatus(cardId, 'error', '❌ ' + e.message);
+      renderError(cardId, e.message);
+    }
+  }
+
+  setProgress(100, 'All done!');
+  setGenerating(false);
+  document.getElementById('askNext').style.display = 'flex';
+}
+
+// ── Fetch Jira ticket ─────────────────────────────────────────────────
+async function fetchJiraTicket(key) {
+  const baseUrl  = document.getElementById('jiraUrl').value.trim();
+  const email    = document.getElementById('jiraEmail').value.trim();
+  const token    = document.getElementById('jiraToken').value.trim();
+
+  if (!baseUrl || !email || !token) {
+    // Return minimal data so AI can still generate generic coverage
+    return { key, title: key, ac: '', description: '', hasJira: false };
+  }
+
+  const res = await fetch('/jira-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ baseUrl, email, token, issueKey: key })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Jira ${res.status}`);
+  }
+
+  const data = await res.json();
+  const fields = data.fields || {};
+
+  // Extract AC from common custom fields
+  const ac = fields.customfield_10016
+    || fields.customfield_10014
+    || fields.customfield_10013
+    || fields.description?.content?.map(b =>
+        b.content?.map(t => t.text || '').join('') || '').join('\n')
+    || '';
+
+  return {
+    key,
+    title:       fields.summary || key,
+    ac:          typeof ac === 'string' ? ac : JSON.stringify(ac),
+    priority:    fields.priority?.name || 'Medium',
+    status:      fields.status?.name || '',
+    assignee:    fields.assignee?.displayName || '',
+    hasJira:     true
+  };
+}
+
+// ── AI: generate coverage ─────────────────────────────────────────────
+async function generateCoverage(key, jiraData, aiKey) {
+  const prompt = `You are an AI assistant that analyzes Jira tickets and generates concise UI QA coverage.
+
+Jira Ticket: ${jiraData.key}
+Title: ${jiraData.title}
+Priority: ${jiraData.priority || 'Medium'}
+${jiraData.ac ? `Acceptance Criteria / Description:\n${jiraData.ac}` : ''}
+
+Generate UI QA coverage as JSON with exactly these 4 sections.
+Each section is an array of bullet point strings (concise, UI-focused only).
+No detailed test steps. No test cases. Focus on UI behavior and coverage.
+
+Return ONLY valid JSON, no markdown:
+{
+  "ui_scenarios": [
+    "bullet about core user flows, navigation, interactions",
+    "bullet about UI behavior based on requirements",
+    "bullet about visual elements layout alignment styling"
+  ],
+  "edge_cases": [
+    "bullet about boundary inputs min max long text empty states",
+    "bullet about responsive behavior screen sizes orientations",
+    "bullet about browser compatibility dynamic content"
+  ],
+  "negative_scenarios": [
+    "bullet about invalid inputs error handling",
+    "bullet about broken API impact on UI missing data null states",
+    "bullet about permission or access related UI restrictions"
+  ],
+  "other_considerations": [
+    "bullet about accessibility keyboard navigation screen reader contrast",
+    "bullet about performance slow loading spinners placeholders",
+    "bullet about localization text overflow design system consistency"
+  ]
+}
+
+Rules:
+- Each array must have 3-6 bullets
+- Bullets are specific to THIS ticket (use the title and AC)
+- No generic filler — every bullet must relate to the actual feature
+- Keep each bullet under 15 words`;
+
+  const res = await fetch('/ai-proxy', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ prompt, maxTokens: 1200 })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `AI error ${res.status}`);
+  }
+
+  const data    = await res.json();
+  const content = data.content || '';
+
+  // Parse JSON response
+  const clean = content
+    .replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    throw new Error('AI returned invalid JSON — try again');
+  }
+}
+
+// ── Render coverage card ──────────────────────────────────────────────
+function appendCard(cardId, key) {
+  const div = document.createElement('div');
+  div.className = 'ticket-card';
+  div.id = cardId;
+  div.innerHTML = `
+    <div class="ticket-card-header">
+      <span class="ticket-badge">${key}</span>
+      <span class="ticket-card-title" id="${cardId}-title">Loading...</span>
+      <span class="ticket-status status-loading" id="${cardId}-status">Fetching...</span>
+    </div>
+    <div class="ticket-card-body" id="${cardId}-body">
+      <div class="skeleton" style="width:80%"></div>
+      <div class="skeleton" style="width:60%"></div>
+      <div class="skeleton" style="width:70%"></div>
+    </div>
+  `;
+  document.getElementById('results').appendChild(div);
+}
+
+function renderCoverage(cardId, key, jiraData, coverage) {
+  document.getElementById(`${cardId}-title`).textContent =
+    jiraData.title || key;
+
+  const body = document.getElementById(`${cardId}-body`);
+  body.innerHTML = `
+    <div class="coverage-grid">
+
+      <div class="coverage-section">
+        <div class="cov-title blue">
+          <div class="cov-dot dot-blue"></div>
+          Key UI Test Scenarios
+        </div>
+        <ul class="bullet-list">
+          ${(coverage.ui_scenarios || []).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="coverage-section">
+        <div class="cov-title amber">
+          <div class="cov-dot dot-amber"></div>
+          Edge Cases
+        </div>
+        <ul class="bullet-list">
+          ${(coverage.edge_cases || []).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="coverage-section">
+        <div class="cov-title red">
+          <div class="cov-dot dot-red"></div>
+          Negative Scenarios
+        </div>
+        <ul class="bullet-list">
+          ${(coverage.negative_scenarios || []).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="coverage-section">
+        <div class="cov-title purple">
+          <div class="cov-dot dot-purple"></div>
+          Other UI Considerations
+        </div>
+        <ul class="bullet-list">
+          ${(coverage.other_considerations || []).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+
+    </div>
+  `;
+
+  // Add download + copy actions
+  const card = document.getElementById(cardId);
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  actions.innerHTML = `
+    <button class="btn-download" onclick="downloadPlan('${key}')">
+      ⬇ Download Test Plan
+    </button>
+    <button class="btn-copy" onclick="copyPlan('${key}')">📋 Copy</button>
+    <span class="card-actions-right">${new Date().toLocaleDateString()}</span>
+  `;
+  card.appendChild(actions);
+}
+
+function renderError(cardId, message) {
+  document.getElementById(`${cardId}-body`).innerHTML = `
+    <div style="color:var(--red);font-size:12px;padding:8px 0">
+      ❌ ${message}
+    </div>
+  `;
+}
+
+function setCardStatus(cardId, type, text) {
+  const el = document.getElementById(`${cardId}-status`);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `ticket-status status-${type}`;
+  const title = document.getElementById(`${cardId}-title`);
+  if (title && type !== 'loading' && generatedResults[cardId.replace('card-','')]?.jiraData?.title) {
+    title.textContent = generatedResults[cardId.replace('card-','')].jiraData.title;
+  }
+}
+
+// ── Download test plan ────────────────────────────────────────────────
+function buildPlanText(key) {
+  const result = generatedResults[key];
+  if (!result) return '';
+  const { jiraData, coverage } = result;
+  const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+
+  const bullets = (arr) => (arr || []).map(b => `  • ${b}`).join('\n');
+
+  return `UI QA COVERAGE REPORT
+══════════════════════════════════════════════
+Ticket   : ${key}
+Title    : ${jiraData.title || key}
+Priority : ${jiraData.priority || 'Medium'}
+Date     : ${date}
+══════════════════════════════════════════════
+
+1. KEY UI TEST SCENARIOS
+${bullets(coverage.ui_scenarios)}
+
+2. EDGE CASES
+${bullets(coverage.edge_cases)}
+
+3. NEGATIVE SCENARIOS
+${bullets(coverage.negative_scenarios)}
+
+4. OTHER UI CONSIDERATIONS
+${bullets(coverage.other_considerations)}
+
+══════════════════════════════════════════════
+Generated by Upland Software UI QA Coverage Tool
+`;
+}
+
+function downloadPlan(key) {
+  const text = buildPlanText(key);
+  if (!text) return;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `UI_QA_Coverage_${key}_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  showToast(`Downloaded coverage for ${key}`);
+}
+
+async function copyPlan(key) {
+  const text = buildPlanText(key);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Copied to clipboard!');
+  } catch(e) {
+    showToast('Copy failed', 'err');
+  }
+}
+
+// ── Reset for next batch ──────────────────────────────────────────────
+function resetForNext() {
+  document.getElementById('askNext').style.display    = 'none';
+  document.getElementById('progressBar').style.display = 'none';
+  document.getElementById('statusBar').style.display   = 'none';
+  document.getElementById('results').innerHTML         = '';
+  generatedResults = {};
+
+  // Clear ticket inputs, keep one
+  const inputs = document.getElementById('ticketInputs');
+  inputs.innerHTML = `
+    <div class="ticket-row">
+      <div class="ticket-num">1</div>
+      <input class="ticket-input" type="text" placeholder="https://upland.atlassian.net/browse/CIMP-1234 or CIMP-1234"/>
+      <button class="ticket-remove" onclick="removeTicket(this)" title="Remove">×</button>
+    </div>
+  `;
+  ticketCount = 1;
+  updateTicketUI();
+  document.querySelector('.ticket-input').focus();
+}
+
+function clearAll() {
+  resetForNext();
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────
+function setGenerating(on) {
+  document.getElementById('generateBtn').disabled        = on;
+  document.getElementById('genSpinWrap').style.display   = on ? 'flex' : 'none';
+  document.getElementById('genBtnText').textContent      = on ? 'Generating...' : 'Generate UI QA Coverage';
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('statusBar').textContent    = msg;
+}
+
+function showToast(msg, type) {
+  const t    = document.getElementById('toast');
+  t.textContent      = msg;
+  t.style.display    = 'block';
+  t.style.borderColor = type === 'err' ? 'var(--red)' : 'var(--green)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+</script>
+</body>
+</html>

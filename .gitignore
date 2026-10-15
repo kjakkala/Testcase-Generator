@@ -1,0 +1,6 @@
+node_modules/
+data/local-store.json
+token-history.json
+.env
+.env.*
+!.env.example

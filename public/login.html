@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Dashboard Login</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --input: #0f172a;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --primary: #4f46e5;
+      --primary-2: #6366f1;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: rgba(148,163,184,0.2);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Arial, sans-serif; background: linear-gradient(135deg, #0b1220 0%, #111827 100%);
+      color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .login-shell {
+      width: 100%; max-width: 420px; background: rgba(17,24,39,0.92); border: 1px solid var(--border);
+      border-radius: 18px; padding: 32px 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { color: var(--muted); margin-bottom: 24px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 8px; color: var(--text); font-weight: 600; }
+    input {
+      width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--input); color: var(--text);
+      font-size: 15px; outline: none;
+    }
+    input:focus { border-color: var(--primary-2); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+    button {
+      width: 100%; border: none; border-radius: 10px; padding: 12px 14px; font-size: 16px; font-weight: 700; cursor: pointer;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%); color: white; margin-top: 8px;
+    }
+    button:hover { filter: brightness(1.05); }
+    .error { margin-top: 16px; color: #fecaca; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); padding: 10px 12px; border-radius: 8px; display: none; }
+    .note { margin-top: 20px; color: var(--muted); font-size: 12px; }
+    .status { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="login-shell">
+    <h1>QA Dashboard</h1>
+    <div class="sub" id="formSubtitle">Sign in to continue</div>
+
+    <div class="field" id="nameField" style="display:none">
+      <label for="displayName">Your name</label>
+      <input id="displayName" type="text" autocomplete="name" placeholder="Name" />
+    </div>
+
+    <div class="field">
+      <label for="email">Company email</label>
+      <input id="email" type="email" placeholder="name@company.com" />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Enter password" />
+    </div>
+
+    <button id="loginBtn">Login</button>
+    <div id="errorBox" class="error"></div>
+    <div class="status" id="statusText">Using internal app login.</div>
+    <div class="note" id="formNote">Your account credentials are stored by this local app.</div>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const nameInput = document.getElementById('displayName');
+    const nameField = document.getElementById('nameField');
+    const errorBox = document.getElementById('errorBox');
+    const statusText = document.getElementById('statusText');
+    let setupRequired = false;
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = 'block';
+    }
+
+    function clearError() {
+      errorBox.textContent = '';
+      errorBox.style.display = 'none';
+    }
+
+    async function doLogin() {
+      clearError();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const displayName = nameInput.value.trim();
+      if (setupRequired && !displayName) {
+        showError('Enter your name to create the Admin account.');
+        return;
+      }
+      if (!email || !password) {
+        showError('Please enter both email and password.');
+        return;
+      }
+
+      statusText.textContent = setupRequired ? 'Creating your Admin account...' : 'Signing in...';
+      try {
+        const res = await fetch(setupRequired ? '/api/setup' : '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, displayName })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Login failed.');
+        }
+
+        window.location.href = '/';
+      } catch (err) {
+        statusText.textContent = 'Login failed.';
+        showError(err.message || 'Could not sign in.');
+      }
+    }
+
+    async function initializeForm() {
+      try {
+        const res = await fetch('/api/setup/status');
+        const data = await res.json();
+        setupRequired = !!data.setupRequired;
+        if (setupRequired) {
+          document.getElementById('formSubtitle').textContent = 'Create the first Admin account';
+          document.getElementById('formNote').textContent = 'This account can add users and configure shared Bedrock access.';
+          document.getElementById('statusText').textContent = 'One-time local setup. No database required.';
+          nameField.style.display = 'block';
+          passwordInput.minLength = 8;
+          passwordInput.placeholder = 'At least 8 characters';
+          loginBtn.textContent = 'Create Admin account';
+        }
+      } catch (err) {
+        showError('Cannot reach the app server. Start it, then reload this page.');
+      }
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+    passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+    initializeForm();
+  </script>
+</body>
+</html>

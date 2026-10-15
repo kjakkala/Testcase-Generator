@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>TestRail Field Inspector</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #0d1117; color: #c9d1d9; max-width: 900px; }
+  h2 { color: #58a6ff; }
+  input { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; width: 400px; border-radius: 5px; }
+  button { background: #238636; color: white; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer; margin: 4px; font-size: 13px; }
+  button:hover { background: #2ea043; }
+  pre { background: #161b22; border: 1px solid #30363d; padding: 14px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-size: 12px; max-height: 500px; overflow-y: auto; }
+  .label { color: #f0883e; font-weight: bold; }
+  .value { color: #a5d6ff; }
+  .section { margin: 16px 0; padding: 12px; border: 1px solid #30363d; border-radius: 8px; }
+  .key { color: #79c0ff; }
+  .found { color: #56d364; }
+  .missing { color: #f85149; }
+</style>
+</head>
+<body>
+<h2>🔍 TestRail Field Inspector</h2>
+<p style="color:#8b949e">Fetches a real test case to see exact field names TestRail uses on YOUR instance.</p>
+
+<div class="section">
+  <div style="margin-bottom:10px">
+    <label style="color:#8b949e;display:block;margin-bottom:4px">TestRail URL</label>
+    <input id="url" value="https://upland.testrail.com"/>
+  </div>
+  <div style="margin-bottom:10px">
+    <label style="color:#8b949e;display:block;margin-bottom:4px">Case ID (existing test case)</label>
+    <input id="caseId" placeholder="e.g. 12345" style="width:200px"/>
+    <span style="color:#8b949e;font-size:11px;margin-left:8px">Find in TestRail URL: &case_id=XXXXX</span>
+  </div>
+  <div style="margin-bottom:10px">
+    <label style="color:#8b949e;display:block;margin-bottom:4px">Section ID (to test add_case)</label>
+    <input id="sectionId" value="835349" style="width:200px"/>
+  </div>
+  <button onclick="fetchCase()">📥 Fetch Existing Case Fields</button>
+  <button onclick="fetchCaseTemplate()">📋 Fetch Case Template (all fields)</button>
+  <button onclick="testAddCase()">🧪 Test Add Case (dry run)</button>
+</div>
+
+<pre id="out">Click a button to inspect TestRail fields...</pre>
+
+<script>
+const SERVER = 'http://localhost:3377';
+
+function out() { return document.getElementById('out'); }
+
+async function proxy(endpoint, body) {
+  // No cookie passed — server uses its own saved session from config.json
+  const url = document.getElementById('url').value.trim().replace(/\/$/, '');
+  const res = await fetch('/testrail-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url:   url + '/index.php?/api/v2/' + endpoint,
+      body:  body
+      // cookie omitted → server uses auto-login session
+    })
+  });
+  const text = await res.text();
+  try { return { status: res.status, data: JSON.parse(text) }; }
+  catch(e) { return { status: res.status, data: text }; }
+}
+
+// Fetch an existing case to see all field names
+async function fetchCase() {
+  const caseId = document.getElementById('caseId').value.trim();
+  if (!caseId) { out().textContent = '❌ Enter a Case ID first (find one in TestRail URL: &case_id=XXXXX)'; return; }
+
+  out().textContent = 'Fetching case ' + caseId + '...\n';
+
+  const r = await proxy('get_case/' + caseId, null);
+  out().textContent = 'Status: ' + r.status + '\n\n';
+
+  if (r.status !== 200) {
+    out().textContent += '❌ Error: ' + JSON.stringify(r.data, null, 2);
+    return;
+  }
+
+  const data = r.data;
+  out().textContent += '✅ Case fields found:\n\n';
+
+  // Show all fields
+  for (const [key, val] of Object.entries(data)) {
+    const isSteps    = key.toLowerCase().includes('step');
+    const isExpected = key.toLowerCase().includes('expected') || key.toLowerCase().includes('result');
+    const isPrecond  = key.toLowerCase().includes('precond') || key.toLowerCase().includes('setup');
+    const isCustom   = key.startsWith('custom_');
+
+    const marker = (isSteps||isExpected||isPrecond) ? ' ← RELEVANT' : '';
+    out().textContent += `  ${key}: ${JSON.stringify(val)}${marker}\n`;
+  }
+
+  out().textContent += '\n\n--- STEPS FIELD ANALYSIS ---\n';
+  const stepsFields = Object.entries(data).filter(([k]) =>
+    k.includes('step') || k.includes('expected') || k.includes('result') || k.includes('precond')
+  );
+
+  if (stepsFields.length) {
+    stepsFields.forEach(([k, v]) => {
+      out().textContent += `\n✅ FOUND: "${k}"\n   Value: ${JSON.stringify(v)}\n`;
+    });
+  } else {
+    out().textContent += '⚠ No step/expected fields found on this case.\n';
+    out().textContent += 'Custom fields start with "custom_"\n';
+    const customs = Object.entries(data).filter(([k]) => k.startsWith('custom_'));
+    customs.forEach(([k,v]) => {
+      out().textContent += `  ${k}: ${JSON.stringify(v)}\n`;
+    });
+  }
+}
+
+// Fetch case template — shows ALL available fields for the project
+async function fetchCaseTemplate() {
+  out().textContent = 'Fetching case fields configuration...\n';
+  // get_case_fields returns all field definitions
+  const r = await proxy('get_case_fields', null);
+  out().textContent = 'Status: ' + r.status + '\n\n';
+
+  if (r.status !== 200) {
+    out().textContent += '❌ ' + JSON.stringify(r.data, null, 2);
+    return;
+  }
+
+  const fields = Array.isArray(r.data) ? r.data : (r.data.fields || []);
+  out().textContent += `Found ${fields.length} field definitions:\n\n`;
+
+  fields.forEach(f => {
+    const isSteps    = (f.name||'').includes('step') || (f.label||'').toLowerCase().includes('step');
+    const isExpected = (f.name||'').includes('expected') || (f.label||'').toLowerCase().includes('expected');
+    const isPrecond  = (f.name||'').includes('precond') || (f.label||'').toLowerCase().includes('precond');
+    const marker = (isSteps||isExpected||isPrecond) ? ' ◄ RELEVANT' : '';
+    out().textContent += `  system_name: "${f.name}"  label: "${f.label}"  type: ${f.type_id}${marker}\n`;
+  });
+}
+
+// Test add_case with our current payload to see what TestRail says
+async function testAddCase() {
+  const sectionId = document.getElementById('sectionId').value.trim();
+  out().textContent = 'Testing add_case to section ' + sectionId + '...\n';
+  out().textContent += 'Sending test payload with custom_steps_separated...\n\n';
+
+  const testPayload = {
+    title: 'TEST CASE - DELETE ME',
+    type_id: 1,
+    priority_id: 2,
+    refs: 'TEST-001',
+    custom_steps_separated: [
+      { content: 'Navigate to login page', expected: '' },
+      { content: 'Enter valid username',   expected: '' },
+      { content: 'Click Sign In button',   expected: 'Dashboard loads successfully' }
+    ]
+  };
+
+  out().textContent += 'Payload sent:\n' + JSON.stringify(testPayload, null, 2) + '\n\n';
+
+  const r = await proxy('add_case/' + sectionId, testPayload);
+  out().textContent += 'Status: ' + r.status + '\n';
+  out().textContent += 'Response: ' + JSON.stringify(r.data, null, 2) + '\n\n';
+
+  if (r.status === 200) {
+    out().textContent += '✅ Case created! Check TestRail to see if steps appear.\n';
+    out().textContent += 'Case ID: ' + r.data.id + '\n';
+    out().textContent += '⚠️ Please delete this test case from TestRail after checking.\n';
+  } else {
+    out().textContent += '❌ Failed. Error tells us what field name is wrong.\n';
+
+    // Try alternative field names
+    out().textContent += '\n--- Trying alternative field name: custom_steps ---\n';
+    const alt = { ...testPayload };
+    alt.custom_steps = testPayload.custom_steps_separated;
+    delete alt.custom_steps_separated;
+    const r2 = await proxy('add_case/' + sectionId, alt);
+    out().textContent += 'custom_steps → Status: ' + r2.status + ' | ' + JSON.stringify(r2.data).slice(0,100) + '\n';
+
+    out().textContent += '\n--- Trying: steps ---\n';
+    const alt3 = { ...testPayload };
+    alt3.steps = testPayload.custom_steps_separated;
+    delete alt3.custom_steps_separated;
+    const r3 = await proxy('add_case/' + sectionId, alt3);
+    out().textContent += 'steps → Status: ' + r3.status + ' | ' + JSON.stringify(r3.data).slice(0,100) + '\n';
+  }
+}
+</script>
+</body>
+</html>

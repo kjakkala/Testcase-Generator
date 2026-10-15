@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users | QA Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#172b4d;font:13px Inter,system-ui,sans-serif}
+    .topbar{height:56px;background:#2156a5;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+    .brand{font-size:14px;font-weight:700}.topbar a{color:#fff;text-decoration:none;font-size:12px}
+    main{max-width:1080px;margin:0 auto;padding:30px 24px}.heading{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #c1c7d0;padding-bottom:18px;margin-bottom:18px}
+    h1{font-size:22px;margin:0 0 4px}.subtitle{font-size:12px;color:#6b778c}.primary,.secondary{border:1px solid transparent;border-radius:4px;padding:9px 14px;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+    .primary{background:#0052cc;color:#fff}.primary:hover{background:#0747a6}.secondary{background:#fff;color:#172b4d;border-color:#c1c7d0}
+    .table-wrap{overflow:auto;background:#fff;border:1px solid #dfe1e6;border-radius:6px}table{width:100%;border-collapse:collapse;min-width:600px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid #f0f1f3}th{font-size:10px;color:#6b778c;text-transform:uppercase;background:#fafbfc}td{font-size:12px}tr:last-child td{border-bottom:0}.role{display:inline-block;border-radius:3px;padding:3px 7px;background:#e3fcef;color:#006644;font-weight:600;font-size:10px}.role.admin{background:#deebff;color:#0747a6}.empty,.status{padding:20px;color:#6b778c;font-size:12px}.status.error{color:#ae2e24}
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(9,30,66,.45);padding:18px}.overlay.open{display:flex}.dialog{width:min(460px,100%);background:#fff;border-radius:6px;box-shadow:0 16px 42px rgba(9,30,66,.25);overflow:hidden}.dialog-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #dfe1e6}.dialog-head h2{margin:0;font-size:15px}.close{border:0;background:transparent;font-size:20px;color:#6b778c;cursor:pointer}.form{padding:18px 20px}.field{margin-bottom:13px}.field label{display:block;margin-bottom:5px;font-size:11px;font-weight:600;color:#44546f}.field input,.field select{width:100%;height:36px;border:1px solid #c1c7d0;border-radius:4px;padding:0 9px;font:12px Inter,system-ui,sans-serif;color:#172b4d;background:white}.field input:focus,.field select:focus{outline:2px solid #b3d4ff;border-color:#0052cc}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.actions .primary{min-width:112px}.error{color:#ae2e24;font-size:12px;margin-top:12px;min-height:16px}
+    @media(max-width:600px){main{padding:22px 14px}.heading{align-items:flex-start;gap:12px}.heading .primary{white-space:nowrap}.topbar{padding:0 14px}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><span class="brand">Upland QA Dashboard</span><a href="/">Back to dashboard</a></header>
+  <main>
+    <div class="heading">
+      <div><h1>Users</h1><div class="subtitle" id="userCount">Loading accounts...</div></div>
+      <button class="primary" id="openCreate">Add user</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody id="userRows"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="status" id="pageStatus" role="status"></div>
+  </main>
+
+  <div class="overlay" id="createDialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <div class="dialog">
+      <div class="dialog-head"><h2 id="dialogTitle">Add user</h2><button class="close" id="closeCreate" aria-label="Close">&times;</button></div>
+      <form class="form" id="createForm">
+        <div class="field"><label for="newName">Name</label><input id="newName" autocomplete="name" required /></div>
+        <div class="field"><label for="newEmail">Email</label><input id="newEmail" type="email" autocomplete="email" required /></div>
+        <div class="field"><label for="newPassword">Temporary password</label><input id="newPassword" type="password" minlength="8" autocomplete="new-password" required /></div>
+        <div class="field"><label for="newRole">Role</label><select id="newRole"><option value="QA">QA</option><option value="Admin">Admin</option></select></div>
+        <div class="error" id="formError" role="alert"></div>
+        <div class="actions"><button class="secondary" type="button" id="cancelCreate">Cancel</button><button class="primary" id="submitCreate" type="submit">Create account</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const dialog=document.getElementById('createDialog');
+    const rows=document.getElementById('userRows');
+    const status=document.getElementById('pageStatus');
+    const esc=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    function closeDialog(){dialog.classList.remove('open');document.getElementById('createForm').reset();document.getElementById('formError').textContent='';}
+    function openDialog(){dialog.classList.add('open');document.getElementById('newName').focus();}
+    async function loadUsers(){
+      try{
+        const response=await fetch('/api/users');
+        if(response.status===401){location.href='/login.html';return;}
+        const data=await response.json();
+        if(response.status===403){document.getElementById('userCount').textContent='Admin access required';rows.innerHTML='<tr><td colspan="5" class="empty">This page is limited to Admin accounts.</td></tr>';document.getElementById('openCreate').hidden=true;return;}
+        if(!response.ok)throw new Error(data.error||'Could not load users.');
+        const users=Array.isArray(data.users)?data.users:[];
+        document.getElementById('userCount').textContent=users.length+' account'+(users.length===1?'':'s');
+        rows.innerHTML=users.length?users.map(user=>`<tr><td>${esc(user.displayName)}</td><td>${esc(user.email)}</td><td><span class="role ${user.role==='Admin'?'admin':''}">${esc(user.role)}</span></td><td>${user.isActive?'Active':'Disabled'}</td><td>${user.createdAt?new Date(user.createdAt).toLocaleDateString():''}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">No accounts found.</td></tr>';
+      }catch(error){status.className='status error';status.textContent=error.message;}
+    }
+    document.getElementById('openCreate').addEventListener('click',openDialog);
+    document.getElementById('closeCreate').addEventListener('click',closeDialog);
+    document.getElementById('cancelCreate').addEventListener('click',closeDialog);
+    dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog();});
+    document.getElementById('createForm').addEventListener('submit',async event=>{
+      event.preventDefault();
+      const error=document.getElementById('formError');
+      const button=document.getElementById('submitCreate');
+      error.textContent='';button.disabled=true;button.textContent='Creating...';
+      const payload={displayName:document.getElementById('newName').value.trim(),email:document.getElementById('newEmail').value.trim(),password:document.getElementById('newPassword').value,role:document.getElementById('newRole').value};
+      try{
+        const response=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.error||'Could not create user.');
+        closeDialog();status.className='status';status.textContent='Account created.';await loadUsers();
+      }catch(err){error.textContent=err.message;}
+      finally{button.disabled=false;button.textContent='Create account';}
+    });
+    loadUsers();
+  </script>
+</body>
+</html>

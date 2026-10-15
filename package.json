@@ -1,0 +1,13 @@
+{
+  "name": "testplan-generator",
+  "version": "1.0.0",
+  "description": "AI-powered Test Plan Generator",
+  "main": "server.js",
+  "scripts": {
+    "test:ac-parser": "node scripts/ac-parser-regression.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1148.0",
+    "docx": "^8.5.0"
+  }
+}

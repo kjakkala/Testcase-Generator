@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head><title>TestRail Test</title></head>
+<body style="font-family:monospace;padding:20px;max-width:800px">
+<h2>TestRail Connection Test</h2>
+
+<p style="background:#dbeafe;padding:12px;border-radius:8px;line-height:1.7">
+  This page calls TestRail directly from your browser using your existing login session.<br/>
+  <strong>Make sure you are logged into TestRail first.</strong>
+</p>
+
+<div style="margin:12px 0">
+  <label>TestRail URL:<br/>
+    <input id="url" value="https://upland.testrail.com" style="width:400px;padding:6px"/>
+  </label>
+</div>
+<div style="margin:12px 0">
+  <label>Project ID:<br/>
+    <input id="proj" value="30" style="width:100px;padding:6px"/>
+  </label>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+  <button onclick="testDirect()" 
+    style="padding:10px 20px;background:#1d4ed8;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">
+    🔌 Test Direct (browser session)
+  </button>
+  <button onclick="testProxy()" 
+    style="padding:10px 20px;background:#6b7280;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">
+    🖥 Test via Proxy
+  </button>
+  <button onclick="checkPing()" 
+    style="padding:10px 20px;background:#059669;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">
+    📡 Ping Server
+  </button>
+</div>
+
+<pre id="out" style="margin-top:20px;background:#f4f4f4;padding:14px;border-radius:6px;
+  white-space:pre-wrap;word-break:break-all;min-height:80px"></pre>
+
+<script>
+const out = () => document.getElementById('out');
+
+// Test 1 — ping local server
+async function checkPing() {
+  out().textContent = 'Pinging http://localhost:3377/ping ...\n';
+  try {
+    const r = await fetch('/ping');
+    const d = await r.json();
+    out().textContent += 'Status: ' + r.status + '\n';
+    out().textContent += 'Body: ' + JSON.stringify(d) + '\n';
+    out().style.background = r.ok ? '#dcfce7' : '#fee2e2';
+  } catch(e) {
+    out().textContent += '❌ ' + e.message;
+    out().style.background = '#fee2e2';
+  }
+}
+
+// Test 2 — call TestRail directly from browser (uses your login cookies automatically)
+async function testDirect() {
+  const url = document.getElementById('url').value.trim().replace(/\/$/, '');
+  out().textContent = 'Calling TestRail directly (using your browser session)...\n';
+  out().textContent += 'URL: ' + url + '/index.php?/api/v2/get_current_user\n\n';
+  try {
+    const r = await fetch(url + '/index.php?/api/v2/get_current_user', {
+      credentials: 'include',  // sends your browser cookies
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const text = await r.text();
+    out().textContent += 'Status: ' + r.status + '\n';
+    out().textContent += 'Body: ' + text;
+    try {
+      const d = JSON.parse(text);
+      if (d.id) {
+        out().style.background = '#dcfce7';
+        out().textContent += '\n\n✅ SUCCESS! ' + d.name + ' (Role: ' + d.role + ')';
+      }
+    } catch(e) {}
+  } catch(e) {
+    out().textContent += '❌ Error: ' + e.message;
+    out().textContent += '\n\nThis may be a CORS error — that is expected.\n';
+    out().textContent += 'Try the Ping Server button to check if server is running.';
+    out().style.background = '#fef3c7';
+  }
+}
+
+// Test 3 — via proxy (checks if new server.js is loaded)
+async function testProxy() {
+  const url = document.getElementById('url').value.trim().replace(/\/$/, '');
+  out().textContent = 'Testing via proxy (checks server.js version)...\n';
+  try {
+    const r = await fetch('/testrail-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url:   url + '/index.php?/api/v2/get_current_user',
+        ping:  false,
+        email: 'test',
+        key:   'test',
+        body:  null
+      })
+    });
+    const text = await r.text();
+    out().textContent += 'Status: ' + r.status + '\n';
+    out().textContent += 'Body: ' + text + '\n\n';
+    if (text.includes('Authentication failed')) {
+      out().textContent += '✅ Proxy is working (TestRail rejects test creds as expected)';
+      out().style.background = '#dcfce7';
+    } else if (text.includes('Missing auth')) {
+      out().textContent += '✅ New server.js is loaded correctly!';
+      out().style.background = '#dcfce7';
+    }
+  } catch(e) {
+    out().textContent += '❌ Proxy error: ' + e.message;
+    out().textContent += '\n\nThe old server.js may still be running.\n';
+    out().textContent += 'Run: taskkill /f /im node.exe\nThen: node server.js';
+    out().style.background = '#fee2e2';
+  }
+}
+</script>
+</body>
+</html>
